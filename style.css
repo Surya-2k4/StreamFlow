@@ -837,21 +837,18 @@ video {
 
 
 
-/* Main Content Scroll Fixes */
-
-/* Main Content Scroll Fixes */
+/* Main Content - Layout Base */
 .main-content {
     flex: 1;
     overflow-y: hidden;
-    /* Let individual sections decide scroll */
     overflow-x: hidden;
     height: 100vh;
     padding-top: 90px;
-    /* Increased top spacing */
     padding-bottom: 0;
     display: none;
-    /* Default hidden, specific IDs will override */
 }
+
+
 
 /* Common Layout shared by TV and Radio */
 #tvSection,

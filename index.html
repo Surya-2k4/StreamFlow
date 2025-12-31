@@ -148,29 +148,30 @@
             <section class="channels-section" style="width: 100%; border: none; padding-bottom: 80px;">
                 <div class="channels-header">
                     <h3>Top Headlines</h3>
-                    <div class="news-controls" style="display: flex; gap: 10px; align-items: center;">
-                        <button id="refreshNewsBtn" class="icon-btn" title="Refresh News">
-                            <i class="fa-solid fa-rotate-right"></i>
-                        </button>
-                        <select id="newsCountry">
-                            <option value="us">USA</option>
-                            <option value="in">India</option>
-                            <option value="gb">UK</option>
-                            <option value="au">Australia</option>
-                            <option value="fr">France</option>
-                            <option value="ru">Russia</option>
-                        </select>
-                        <select id="newsCategory">
-                            <option value="general">General</option>
-                            <option value="technology">Technology</option>
-                            <option value="business">Business</option>
-                            <option value="entertainment">Entertainment</option>
-                            <option value="sports">Sports</option>
-                            <option value="science">Science</option>
-                            <option value="health">Health</option>
-                        </select>
-                    </div>
                 </div>
+                <div class="news-controls" style="display: flex; gap: 10px; align-items: center;">
+                    <button id="refreshNewsBtn" class="icon-btn" title="Refresh News">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    <select id="newsCountry">
+                        <option value="us">USA</option>
+                        <option value="in">India</option>
+                        <option value="gb">UK</option>
+                        <option value="au">Australia</option>
+                        <option value="fr">France</option>
+                        <option value="ru">Russia</option>
+                    </select>
+                    <select id="newsCategory">
+                        <option value="general">General</option>
+                        <option value="technology">Technology</option>
+                        <option value="business">Business</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="sports">Sports</option>
+                        <option value="science">Science</option>
+                        <option value="health">Health</option>
+                    </select>
+                </div>
+
                 <div class="news-grid" id="newsGrid">
                     <div class="loading-spinner">
                         <div class="spinner"></div>
@@ -302,10 +303,7 @@
             </div>
         </main>
 
-        <div class="copyright-footer">
-            <p>&copy; 2026 Surya. All rights reserved.</p>
-        </div>
-        </main>
+
         <!-- Focus Section -->
         <main class="main-content" id="focusSection" style="display: none;">
             <div class="focus-container"
@@ -363,7 +361,9 @@
 
                 <div class="chat-messages" id="chatMessages">
                     <div class="message system">
-                        <span class="msg-content">Welcome to the global stream! Say hello. 👋</span>
+                        <span class="msg-content">Welcome to the global stream! Say hello. 👋<br>
+                            <center>Refresh to reset the chat</center>
+                        </span>
                     </div>
                 </div>
 
@@ -377,6 +377,10 @@
                 </div>
             </div>
         </main>
+
+        <div class="copyright-footer">
+            <p>&copy; 2026 Surya. All rights reserved.</p>
+        </div>
     </div>
 
     <script src="app.js"></script>
