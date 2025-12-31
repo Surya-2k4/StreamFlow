@@ -730,8 +730,195 @@ video {
     transition: all 0.3s ease;
 }
 
-.icon-btn:hover {
+/* Tuner Slider Styling */
+.tuner-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px;
+    background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
+    border-radius: 10px;
+    outline: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.tuner-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 40px;
+    background: var(--accent-color);
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 10px var(--accent-color), 0 0 5px rgba(255, 255, 255, 0.5);
+    border: 2px solid #fff;
+    margin-top: -2px;
+    /* slight offset */
+}
+
+.tuner-slider::-moz-range-thumb {
+    width: 25px;
+    height: 40px;
+    background: var(--accent-color);
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 10px var(--accent-color);
+    border: 2px solid #fff;
+}
+
+.tuner-display-screen span {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.live-badge {
+    display: inline-block;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 10px;
+    vertical-align: middle;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.weather-widget {
+    transition: background 0.3s ease;
+}
+
+.weather-widget:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+@media (max-width: 600px) {
+    .weather-widget {
+        display: none !important;
+        /* Hide on mobile to save space */
+    }
+}
+
+
+
+/* Main Content Scroll Fixes */
+
+/* Main Content Scroll Fixes */
+.main-content {
+    flex: 1;
+    overflow-y: hidden;
+    /* Let individual sections decide scroll */
+    overflow-x: hidden;
+    height: 100vh;
+    padding-top: 90px;
+    /* Increased top spacing */
+    padding-bottom: 0;
+    display: none;
+    /* Default hidden, specific IDs will override */
+}
+
+/* Common Layout shared by TV and Radio */
+#tvSection,
+#radioSection {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+}
+
+/* Ensure Player Section is main area */
+.player-section {
+    flex: 3;
+    /* ~75% */
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Ensure Channels List is sidebar */
+.channels-section {
+    flex: 1;
+    /* ~25% */
+    height: 100%;
+    overflow-y: auto;
+    border-left: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    padding-bottom: 60px;
+}
+
+/* Weather Specific: Ensure proper stacking */
+#weatherSection {
+    display: block;
+    overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+
+    #tvSection,
+    #radioSection {
+        flex-direction: column;
+    }
+
+    .player-section,
+    .channels-section {
+        width: 100%;
+        flex: none;
+        height: auto;
+        overflow: visible;
+    }
+
+    .channels-section {
+        border-left: none;
+    }
+
+    .main-content {
+        overflow-y: auto;
+        /* Main scroll on mobile */
+        height: auto;
+        display: block;
+    }
+}
+
+/* Scrollbar Styling for Webkit */
+.main-content::-webkit-scrollbar,
+.player-section::-webkit-scrollbar,
+.channels-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main-content::-webkit-scrollbar-track,
+.player-section::-webkit-scrollbar-track,
+.channels-section::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.main-content::-webkit-scrollbar-thumb,
+.player-section::-webkit-scrollbar-thumb,
+.channels-section::-webkit-scrollbar-thumb {
     background: var(--surface-hover);
-    color: var(--accent-color);
-    transform: rotate(180deg);
+    border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover,
+.player-section::-webkit-scrollbar-thumb,
+.channels-section::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
 }

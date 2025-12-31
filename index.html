@@ -31,6 +31,12 @@
                 <a href="#" class="nav-link" id="navNews">
                     <i class="fa-solid fa-newspaper"></i> News
                 </a>
+                <a href="#" class="nav-link" id="navRadio">
+                    <i class="fa-solid fa-radio"></i> Radio
+                </a>
+                <a href="#" class="nav-link" id="navWeather">
+                    <i class="fa-solid fa-cloud-sun"></i> Weather
+                </a>
             </nav>
             <div class="search-bar" id="tvSearchBar">
                 <i class="fa-solid fa-search"></i>
@@ -44,6 +50,11 @@
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="newsSearchInput" placeholder="Search headlines...">
             </div>
+            <div class="search-bar" id="radioSearchBar" style="display: none;">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="radioSearchInput" placeholder="Search stations...">
+            </div>
+
         </header>
 
         <main class="main-content" id="tvSection">
@@ -158,6 +169,129 @@
                 </div>
             </section>
         </main>
+        <!-- Radio Section (Hidden by Default) -->
+        <main class="main-content" id="radioSection" style="display: none;">
+            <section class="player-section">
+                <!-- Classic Tuner UI -->
+                <div class="classic-tuner-wrapper"
+                    style="margin-bottom: 30px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div class="tuner-display-screen"
+                        style="background: #1a1a1a; color: var(--accent-color); font-family: 'Courier New', monospace; font-size: 2rem; text-align: center; padding: 10px; border: 2px inset rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 15px; text-shadow: 0 0 10px var(--accent-color);">
+                        <span id="tunerFrequency">FM 88.0</span> <span
+                            style="font-size: 0.8rem; opacity: 0.7;">MHz</span>
+                    </div>
+
+                    <div class="tuner-controls" style="position: relative; padding: 20px 0;">
+                        <input type="range" min="0" max="100" value="0" class="tuner-slider" id="tunerSlider"
+                            style="width: 100%; cursor: pointer;">
+                        <div class="tuner-markers"
+                            style="display: flex; justify-content: space-between; margin-top: 10px; color: var(--text-secondary); font-size: 0.8rem;">
+                            <span>88</span>
+                            <span>92</span>
+                            <span>96</span>
+                            <span>100</span>
+                            <span>104</span>
+                            <span>108</span>
+                        </div>
+                        <div class="tuning-indicator" id="tuningIndicator"
+                            style="display:none; position: absolute; top: -10px; right: 10px; color: var(--accent-color);">
+                            <i class="fa-solid fa-signal"></i> Tuning...
+                        </div>
+                    </div>
+
+                    <div class="music-info" style="margin-top: 20px;">
+                        <h2 id="radioName">Station Browser</h2>
+                        <p id="radioTags">Use the tuner or grid to select</p>
+                    </div>
+                </div>
+
+                <div class="music-player-container">
+                    <div class="album-art-large" id="radioArtContainer" style="width: 120px; height: 120px;">
+                        <i class="fa-solid fa-radio" style="font-size: 3rem;"></i>
+                        <img id="radioCover" src="" alt="Station" style="display: none;">
+                    </div>
+                    <audio id="radioPlayer" controls style="width: 100%; flex: 1;"></audio>
+                </div>
+            </section>
+
+            <section class="channels-section">
+                <div class="channels-header">
+                    <h3>Available Stations <span class="live-badge">LIVE</span></h3>
+                    <div class="news-controls" style="display: flex; gap: 10px; align-items: center;">
+                        <select id="radioCountry">
+                            <option value="IN">India</option>
+                            <option value="US">USA</option>
+                        </select>
+                        <select id="radioGenre">
+                            <option value="">All Genres</option>
+                            <option value="bollywood">Bollywood</option>
+                            <option value="pop">Pop</option>
+                            <option value="news">News</option>
+                            <option value="classic">Classic</option>
+                            <option value="rock">Rock</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Hidden grid when using tuner primarily, but kept for browsing -->
+                <div class="channels-grid" id="radioGrid">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Loading stations...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+
+        <!-- Weather Section -->
+        <main class="main-content" id="weatherSection" style="display: none;">
+            <div style="width: 100%; max-width: 800px; margin: 0 auto; padding: 20px;">
+                <!-- Weather Search -->
+                <div class="search-bar" style="display: flex; margin-bottom: 30px;">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="weatherSearchInput" placeholder="Enter city name..." style="width: 100%;">
+                    <button id="weatherSearchBtn" class="read-more-btn"
+                        style="padding: 10px 20px; margin-left: 10px; cursor: pointer;">Search</button>
+                </div>
+
+                <!-- Current Weather Hero -->
+                <div class="weather-hero" id="weatherHero"
+                    style="background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border-radius: 20px; padding: 40px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    <h2 id="weatherCity" style="font-size: 2.5rem; margin-bottom: 10px;">New York</h2>
+                    <div style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 20px;" id="weatherDate">
+                        Today</div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px;">
+                        <span id="weatherMainIcon"
+                            style="font-size: 5rem; text-shadow: 0 0 20px rgba(255,255,255,0.2);">⛅</span>
+                        <span id="weatherMainTemp" style="font-size: 4rem; font-weight: bold;">--°C</span>
+                    </div>
+
+                    <p id="weatherDesc" style="font-size: 1.5rem; color: var(--accent-color);">Partly Cloudy</p>
+
+                    <div class="weather-details"
+                        style="display: flex; justify-content: space-around; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <div>
+                            <i class="fa-solid fa-wind"></i> <span id="weatherWind">-- km/h</span>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Wind</div>
+                        </div>
+                        <div>
+                            <i class="fa-solid fa-droplet"></i> <span id="weatherHumidity">--%</span>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Humidity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7 Day Forecast -->
+                <h3 style="margin-bottom: 20px;">7-Day Forecast</h3>
+                <div class="forecast-grid" id="forecastGrid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px;">
+                    <!-- Forecast Cards will be injected here -->
+                </div>
+            </div>
+        </main>
+
         <div class="copyright-footer">
             <p>&copy; 2026 Surya. All rights reserved.</p>
         </div>

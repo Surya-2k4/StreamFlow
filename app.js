@@ -368,7 +368,88 @@ const newsElements = {
     refreshBtn: document.getElementById('refreshNewsBtn')
 };
 
+const radioElements = {
+    navRadio: document.getElementById('navRadio'),
+    radioSection: document.getElementById('radioSection'),
+    radioSearchBar: document.getElementById('radioSearchBar'),
+    radioSearchInput: document.getElementById('radioSearchInput'),
+    radioGrid: document.getElementById('radioGrid'),
+    radioPlayer: document.getElementById('radioPlayer'),
+    radioName: document.getElementById('radioName'),
+    radioTags: document.getElementById('radioTags'),
+    radioCover: document.getElementById('radioCover'),
+    radioArtContainer: document.getElementById('radioArtContainer'),
+    radioCountry: document.getElementById('radioCountry'),
+    radioGenre: document.getElementById('radioGenre'),
+    // Tuner Elements
+    tunerSlider: document.getElementById('tunerSlider'),
+    tunerFrequency: document.getElementById('tunerFrequency'),
+    tuningIndicator: document.getElementById('tuningIndicator')
+};
+
+const weatherElements = {
+    section: document.getElementById('weatherSection'),
+    input: document.getElementById('weatherSearchInput'),
+    btn: document.getElementById('weatherSearchBtn'),
+
+    // Hero
+    city: document.getElementById('weatherCity'),
+    date: document.getElementById('weatherDate'),
+    mainTemp: document.getElementById('weatherMainTemp'),
+    mainIcon: document.getElementById('weatherMainIcon'),
+    desc: document.getElementById('weatherDesc'),
+    wind: document.getElementById('weatherWind'),
+    humidity: document.getElementById('weatherHumidity'),
+
+    // Grid
+    grid: document.getElementById('forecastGrid')
+};
+
 let newsAutoRefreshInterval = null;
+let tuningTimeout = null;
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let staticNode = null;
+let gainNode = null;
+
+// Generate Static Noise
+function createStaticNoise() {
+    if (!staticNode) {
+        const bufferSize = audioContext.sampleRate * 2; // 2 seconds buffer
+        const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        staticNode = audioContext.createBufferSource();
+        staticNode.buffer = buffer;
+        staticNode.loop = true;
+
+        gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.05; // Low volume static
+
+        staticNode.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+    }
+}
+
+function playStatic() {
+    if (audioContext.state === 'suspended') audioContext.resume();
+    if (!staticNode) {
+        createStaticNoise();
+        staticNode.start();
+    } else {
+        gainNode.gain.value = 0.1;
+    }
+}
+
+function stopStatic() {
+    if (gainNode) {
+        // fade out
+        gainNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
+    }
+}
 
 // Mode Switching
 function switchMode(mode) {
@@ -379,21 +460,25 @@ function switchMode(mode) {
     }
 
     // Reset Active States
-    [musicElements.navTv, musicElements.navMusic, newsElements.navNews].forEach(el => el.classList.remove('active'));
+    [musicElements.navTv, musicElements.navMusic, newsElements.navNews, radioElements.navRadio, document.getElementById('navWeather')].forEach(el => el.classList.remove('active'));
 
     // Hide Sections
     musicElements.tvSection.style.display = 'none';
     musicElements.musicSection.style.display = 'none';
     newsElements.newsSection.style.display = 'none';
+    radioElements.radioSection.style.display = 'none';
+    weatherElements.section.style.display = 'none'; // Explicitly hide weather
 
     // Hide Search Bars
     musicElements.tvSearchBar.style.display = 'none';
     musicElements.musicSearchBar.style.display = 'none';
     newsElements.newsSearchBar.style.display = 'none';
+    radioElements.radioSearchBar.style.display = 'none';
 
     // Pause Media
     elements.video.pause();
     musicElements.audioPlayer.pause();
+    radioElements.radioPlayer.pause();
 
     // Activate Mode
     if (mode === 'tv') {
@@ -406,21 +491,31 @@ function switchMode(mode) {
         musicElements.musicSearchBar.style.display = 'flex';
     } else if (mode === 'news') {
         newsElements.navNews.classList.add('active');
-        newsElements.newsSection.style.display = 'flex';
+        newsElements.newsSection.style.display = 'grid'; // News uses grid
         newsElements.newsSearchBar.style.display = 'flex';
 
-        // Initial load if empty
         if (newsElements.newsGrid.children.length <= 1) {
             fetchNews();
         }
 
-        // Start Auto-Refresh (every 2 minutes)
-        newsAutoRefreshInterval = setInterval(() => {
-            console.log('Auto-refreshing news...');
-            fetchNews(true); // check for true in fetchNews to show non-intrusive loading if needed
-        }, 120000);
+        // Start auto-refresh for news
+        newsAutoRefreshInterval = setInterval(fetchNews, 120000);
+
+    } else if (mode === 'radio') {
+        radioElements.navRadio.classList.add('active');
+        radioElements.radioSection.style.display = 'flex'; // Must be Flex for 2-column layout
+        radioElements.radioSearchBar.style.display = 'flex';
+
+        if (allStations.length === 0) {
+            fetchRadioStations();
+        }
+    } else if (mode === 'weather') {
+        document.getElementById('navWeather').classList.add('active');
+        weatherElements.section.style.display = 'block';
     }
 }
+
+
 
 musicElements.navTv.addEventListener('click', (e) => {
     e.preventDefault();
@@ -435,6 +530,11 @@ musicElements.navMusic.addEventListener('click', (e) => {
 newsElements.navNews.addEventListener('click', (e) => {
     e.preventDefault();
     switchMode('news');
+});
+
+radioElements.navRadio.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchMode('radio');
 });
 
 // Music Search
@@ -695,4 +795,401 @@ newsElements.newsSearchInput.addEventListener('input', (e) => {
     renderNews(filtered);
 });
 
+// --- Radio Feature Integration ---
+
+let allStations = [];
+let radioApiBaseUrl = 'https://de1.api.radio-browser.info'; // Default fallback
+
+const RADIO_PLACEHOLDER_IMG = "data:image/jpeg;base64,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`";
+
+// Hardcoded reliable stations for fallback (when API is down/CORS blocks)
+const FALLBACK_STATIONS = [
+    {
+        name: "BBC Radio 1",
+        url: "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+        tags: "pop, rock, news, uk",
+        favicon: "https://upload.wikimedia.org/wikipedia/commons/4/45/BBC_Radio_1_logo.png"
+    },
+    {
+        name: "NPR Program Stream",
+        url: "https://npr-ice.streamguys1.com/live.mp3",
+        tags: "news, talk, usa",
+        favicon: "https://media.npr.org/chrome/favicon/favicon-96x96.png"
+    },
+    {
+        name: "Capital FM London",
+        url: "https://media-ice.musicradio.com/CapitalMP3",
+        tags: "pop, hits, chart, uk",
+        favicon: "https://global.c.files.bbci.co.uk/16F2/production/_109224483_capital.jpg"
+    },
+    {
+        name: "Classic FM",
+        url: "https://media-ice.musicradio.com/ClassicFMMP3",
+        tags: "classical, relaxation",
+        favicon: "https://upload.wikimedia.org/wikipedia/en/thumb/e/e3/Classic_FM_2024.png/200px-Classic_FM_2024.png"
+    },
+    {
+        name: "Smooth Chill",
+        url: "https://media-ice.musicradio.com/SmoothChillMP3",
+        tags: "chillout, ambient, easy listening",
+        favicon: "https://static.radio.net/images/broadcasts/5e/5d/39669/c300.png"
+    },
+    {
+        name: "LBC UK",
+        url: "https://media-ice.musicradio.com/LBCUKMP3",
+        tags: "news, talk, debate",
+        favicon: "https://upload.wikimedia.org/wikipedia/en/thumb/8/86/LBC_Logo_2021.svg/1200px-LBC_Logo_2021.svg.png"
+    },
+    {
+        name: "Ibiza Global Radio",
+        url: "https://icecast.ibizaglobalradio.com/ibizaglobalradio.mp3",
+        tags: "electronic, house, dance",
+        favicon: "https://ibizaglobalradio.com/wp-content/uploads/2021/03/IGR-logo-negre.png"
+    },
+    {
+        name: "Radio Caroline",
+        url: "http://sc3.radiocaroline.co.uk:8000/",
+        tags: "rock, oldies, classic rock",
+        favicon: "http://www.radiocaroline.co.uk/images/home_logo.png"
+    }
+];
+
+// Function to find the fastest/active server
+async function configureRadioServer() {
+    // Hardcoded list of reliable servers to try directly
+    const forcedServers = [
+        'https://de1.api.radio-browser.info',
+        'https://fr1.api.radio-browser.info',
+        'https://at1.api.radio-browser.info',
+        'https://nl1.api.radio-browser.info'
+    ];
+
+    // Pick a random one to start with
+    const randomIndex = Math.floor(Math.random() * forcedServers.length);
+    radioApiBaseUrl = forcedServers[randomIndex];
+    console.log('Forcing Radio Server:', radioApiBaseUrl);
+}
+
+async function fetchRadioStations(retryCount = 0) {
+    if (!radioApiBaseUrl || retryCount === 0) {
+        await configureRadioServer();
+    }
+
+    const country = radioElements.radioCountry.value;
+    const genre = radioElements.radioGenre.value;
+
+    radioElements.radioGrid.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Scanning frequency bands...</p>
+        </div>
+    `;
+
+    try {
+        // Fetch up to 500 stations to satisfy "include all" request
+        let url = `${radioApiBaseUrl}/json/stations/search?limit=500&hidebroken=true&order=clickcount&reverse=true`;
+
+        if (country) url += `&countrycode=${country}`;
+        if (genre) url += `&tag=${genre}`;
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch stations');
+
+        allStations = await response.json();
+        renderRadioStations(allStations);
+
+        // Reset Tuner to start
+        radioElements.tunerSlider.value = 0;
+        radioElements.tunerFrequency.textContent = "FM 88.0";
+
+    } catch (error) {
+        console.error('Radio Fetch Error:', error);
+
+        // Retry logic with a different server
+        if (retryCount < 2) {
+            console.log('Retrying with a different server...');
+            await configureRadioServer(); // Pick new server
+            fetchRadioStations(retryCount + 1);
+        } else {
+            // FALLBACK MODE
+            console.warn('API connection failed. Loading fallback stations.');
+            radioElements.radioGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-bottom: 20px;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        <i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i> 
+                        Live station list unavailable. Showing popular recommended stations.
+                    </p>
+                </div>
+             `;
+
+            // Manually render the fallback cards
+            FALLBACK_STATIONS.forEach(station => {
+                const card = document.createElement('div');
+                card.className = 'channel-card';
+
+                // Use station favicon or genericon
+                const imgUrl = station.favicon || 'https://cdn-icons-png.flaticon.com/512/3075/3075841.png';
+
+                card.innerHTML = `
+                    <img src="${imgUrl}" alt="${station.name}" class="channel-logo" style="border-radius: 50%; background:white; padding: 2px;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3075/3075841.png'">
+                    <div class="channel-details">
+                        <div class="channel-name" title="${station.name}">${station.name}</div>
+                        <div class="channel-group" title="${station.tags}">${station.tags}</div>
+                    </div>
+                `;
+                card.onclick = () => playRadioStation(station, card);
+                radioElements.radioGrid.appendChild(card);
+            });
+
+            // Update allStations so search still works on fallbacks
+            allStations = FALLBACK_STATIONS;
+        }
+    }
+}
+
+function renderRadioStations(stations) {
+    radioElements.radioGrid.innerHTML = '';
+
+    if (!stations || stations.length === 0) {
+        radioElements.radioGrid.innerHTML = '<p style="text-align: center; width: 100%; color: var(--text-secondary);">No stations found.</p>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    stations.forEach(station => {
+        const card = document.createElement('div');
+        card.className = 'channel-card'; // Reuse styled card
+
+        // Use standard placeholder for all stations per user request
+        const imgUrl = RADIO_PLACEHOLDER_IMG;
+
+        card.innerHTML = `
+            <img src="${imgUrl}" alt="${station.name}" class="channel-logo" style="border-radius: 50%; background:white; padding: 2px;" onerror="this.src='${RADIO_PLACEHOLDER_IMG}'">
+            <div class="channel-details">
+                <div class="channel-name" title="${station.name}">${station.name}</div>
+                <div class="channel-group" title="${station.tags}">${station.tags.slice(0, 30)}${station.tags.length > 30 ? '...' : ''}</div>
+            </div>
+        `;
+
+        card.onclick = () => playRadioStation(station, card);
+        fragment.appendChild(card);
+    });
+
+    radioElements.radioGrid.appendChild(fragment);
+}
+
+function playRadioStation(station, cardElement) {
+    // Highlight
+    document.querySelector('#radioGrid .active')?.classList.remove('active');
+    if (cardElement) cardElement.classList.add('active');
+
+    // Update Player UI
+    radioElements.radioName.textContent = station.name;
+    radioElements.radioTags.textContent = station.tags || 'Unknown Genre';
+
+    if (station.favicon) {
+        radioElements.radioCover.src = station.favicon;
+        radioElements.radioCover.style.display = 'block';
+        radioElements.radioArtContainer.querySelector('i').style.display = 'none';
+    } else {
+        radioElements.radioCover.style.display = 'none';
+        radioElements.radioArtContainer.querySelector('i').style.display = 'inline';
+    }
+
+    // Play Stream
+    radioElements.radioPlayer.src = station.url_resolved || station.url;
+    radioElements.radioPlayer.play().catch(e => console.error("Radio play failed:", e));
+}
+
+// Radio Event Listeners
+radioElements.radioCountry.addEventListener('change', fetchRadioStations);
+radioElements.radioGenre.addEventListener('change', fetchRadioStations);
+
+radioElements.radioSearchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = allStations.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.tags.toLowerCase().includes(query)
+    );
+    renderRadioStations(filtered);
+});
+
+// Tuner Logic
+radioElements.tunerSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+
+    // Simulate frequency range 88.0 - 108.0 MHz
+    // range 0-100 maps to 88-108 -> span of 20MHz. 0.2MHz per step
+    const freq = (88.0 + (val * 0.2)).toFixed(1);
+    radioElements.tunerFrequency.textContent = `FM ${freq}`;
+
+    radioElements.tuningIndicator.style.display = 'block';
+
+    // Play static sound
+    playStatic();
+
+    // Clear previous selection debounce
+    clearTimeout(tuningTimeout);
+
+    // Find station
+    if (allStations.length > 0) {
+        // Map 0-100 linear range to array index
+        const index = Math.floor((val / 100) * (allStations.length - 1));
+        const station = allStations[index];
+
+        radioElements.radioName.textContent = `Tuning... ${freq}`;
+        radioElements.radioTags.textContent = station ? station.name : 'Searching...';
+
+        tuningTimeout = setTimeout(() => {
+            radioElements.tuningIndicator.style.display = 'none';
+            stopStatic();
+            if (station) {
+                // Highlight in grid (optional, might be heavy if list is long)
+                // playRadioStation(station); // Don't auto play on every slide, wait for settle
+                playRadioStation(station);
+            }
+        }, 800); // 800ms delay to settle
+    }
+});
+
+// Update country search options to be generic for US/IN primarily
+// Just ensuring default fetch includes India or US if selected
+radioElements.radioCountry.value = 'IN'; // Default to India as per user request to include only IN/US (defaulting one)
+
+// --- Weather Feature ---
+let currentLat = 11.3410; // Erode Default
+let currentLon = 77.7172; // Erode Default
+
+function getWeatherIcon(code) {
+    if (code === 0) return '☀️'; // Clear
+    if (code > 0 && code <= 3) return '☁️'; // Cloudy
+    if (code >= 45 && code <= 48) return '🌫️'; // Fog
+    if (code >= 51 && code <= 67) return '🌧️'; // Drizzle/Rain
+    if (code >= 71 && code <= 77) return '❄️'; // Snow
+    if (code >= 80 && code <= 82) return '🌦️'; // Showers
+    if (code >= 95) return '⚡'; // Thunderstorm
+    return '🌥️';
+}
+
+function getWeatherDesc(code) {
+    if (code === 0) return 'Clear Sky';
+    if (code > 0 && code <= 3) return 'Cloudy';
+    if (code >= 45 && code <= 48) return 'Foggy';
+    if (code >= 51 && code <= 67) return 'Rainy';
+    if (code >= 71 && code <= 77) return 'Snowy';
+    if (code >= 80 && code <= 82) return 'Showers';
+    if (code >= 95) return 'Thunderstorm';
+    return 'Variable';
+}
+
+async function fetchWeather(lat, lon, cityName) {
+    currentLat = lat;
+    currentLon = lon;
+
+    // Show loading state
+    weatherElements.city.textContent = "Loading...";
+
+    try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);
+        const data = await response.json();
+
+        // 1. Render Current Forecast (Hero)
+        if (data.current_weather) {
+            const current = data.current_weather;
+            weatherElements.city.textContent = cityName;
+            weatherElements.mainTemp.textContent = `${Math.round(current.temperature)}°C`;
+            weatherElements.mainIcon.textContent = getWeatherIcon(current.weathercode);
+            weatherElements.desc.textContent = getWeatherDesc(current.weathercode);
+            weatherElements.wind.textContent = `${current.windspeed} km/h`;
+            weatherElements.humidity.textContent = 'Data N/A'; // OpenMeteo basic free doesn't give current humidity easily in one call without hourly
+
+            const date = new Date();
+            weatherElements.date.textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // 2. Render 7-Day Forecast Grid
+        if (data.daily) {
+            weatherElements.grid.innerHTML = '';
+            for (let i = 1; i < data.daily.time.length; i++) { // Start from 1 (tomorrow)
+                const dayDate = new Date(data.daily.time[i]);
+                const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'short' });
+                const code = data.daily.weathercode[i];
+                const max = Math.round(data.daily.temperature_2m_max[i]);
+                const min = Math.round(data.daily.temperature_2m_min[i]);
+
+                const card = document.createElement('div');
+                card.className = 'forecast-card';
+                card.style.background = 'rgba(255,255,255,0.05)';
+                card.style.padding = '15px';
+                card.style.borderRadius = '12px';
+                card.style.textAlign = 'center';
+
+                card.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px; color: var(--text-secondary);">${dayName}</div>
+                    <div style="font-size: 2rem; margin-bottom: 5px;">${getWeatherIcon(code)}</div>
+                    <div>
+                        <span style="font-weight: bold;">${max}°</span> 
+                        <span style="color: var(--text-secondary); font-size: 0.9em;">${min}°</span>
+                    </div>
+                `;
+                weatherElements.grid.appendChild(card);
+            }
+        }
+
+    } catch (e) {
+        console.error("Weather fetch failed", e);
+        weatherElements.city.textContent = "Error loading data";
+    }
+}
+
+async function searchCityWeather() {
+    const city = weatherElements.input.value.trim();
+    if (!city) return;
+
+    try {
+        // Geocoding
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+        const geoData = await geoRes.json();
+
+        if (geoData.results && geoData.results.length > 0) {
+            const result = geoData.results[0];
+            fetchWeather(result.latitude, result.longitude, result.name);
+        } else {
+            alert('City not found!');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Search failed.');
+    }
+}
+
+// Listeners
+document.getElementById('navWeather').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchMode('weather');
+});
+
+weatherElements.btn.addEventListener('click', searchCityWeather);
+weatherElements.input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchCityWeather();
+});
+
+function initWeather() {
+    // Default to Erode, India
+    fetchWeather(11.3410, 77.7172, "Erode");
+
+    // Try to get user location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            fetchWeather(lat, lon, "Local Location");
+        }, (err) => {
+            console.log("Loc permission denied, using default (Erode)");
+        });
+    }
+}
+
 initApp();
+initWeather();
