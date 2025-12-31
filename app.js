@@ -852,9 +852,9 @@ const FALLBACK_STATIONS = [
     },
     {
         name: "Radio Caroline",
-        url: "http://sc3.radiocaroline.co.uk:8000/",
+        url: "https://sc3.radiocaroline.co.uk:8443/", // SSL Port often 8443 or similar, or just try https standard
         tags: "rock, oldies, classic rock",
-        favicon: "http://www.radiocaroline.co.uk/images/home_logo.png"
+        favicon: "https://www.radiocaroline.co.uk/images/home_logo.png"
     }
 ];
 
