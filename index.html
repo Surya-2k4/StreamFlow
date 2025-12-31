@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3187/3187913.png" type="image/x-icon">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4406/4406124.png" type="image/x-icon">
 </head>
 
 <body>
@@ -36,6 +36,9 @@
                 </a>
                 <a href="#" class="nav-link" id="navWeather">
                     <i class="fa-solid fa-cloud-sun"></i> Weather
+                </a>
+                <a href="#" class="nav-link" id="navFocus">
+                    <i class="fa-solid fa-brain"></i> Focus
                 </a>
             </nav>
             <div class="search-bar" id="tvSearchBar">
@@ -295,6 +298,52 @@
         <div class="copyright-footer">
             <p>&copy; 2026 Surya. All rights reserved.</p>
         </div>
+        </main>
+        <!-- Focus Section -->
+        <main class="main-content" id="focusSection" style="display: none;">
+            <div class="focus-container"
+                style="max-width: 900px; margin: 0 auto; padding: 20px; width: 100%; display: flex; flex-direction: column; gap: 30px;">
+
+                <!-- Timer Card -->
+                <div class="focus-card"
+                    style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; text-align: center;">
+                    <div class="timer-modes"
+                        style="display: flex; justify-content: center; gap: 15px; margin-bottom: 30px;">
+                        <button class="mode-btn active" data-mode="focus">Focus (25m)</button>
+                        <button class="mode-btn" data-mode="short">Short Break (5m)</button>
+                        <button class="mode-btn" data-mode="long">Long Break (15m)</button>
+                    </div>
+
+                    <div class="timer-display" id="focusTimer"
+                        style="font-size: 6rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 5px; margin-bottom: 30px; text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);">
+                        25:00
+                    </div>
+
+                    <div class="timer-controls" style="display: flex; justify-content: center; gap: 20px;">
+                        <button id="startTimerBtn" class="action-btn primary"><i class="fa-solid fa-play"></i>
+                            Start</button>
+                        <button id="resetTimerBtn" class="action-btn"><i class="fa-solid fa-rotate-left"></i>
+                            Reset</button>
+                    </div>
+                </div>
+
+                <!-- Ambient Sounds Row -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <!-- Brown Noise -->
+                    <div class="sound-card" id="btnBrownNoise">
+                        <i class="fa-solid fa-water"></i>
+                        <h3>Deep Focus</h3>
+                        <p>Brown Noise</p>
+                    </div>
+                    <!-- Lofi Radio Trigger -->
+                    <div class="sound-card" id="btnLofiFocus">
+                        <i class="fa-solid fa-headphones-simple"></i>
+                        <h3>Lofi Beats</h3>
+                        <p>Relaxing Radio</p>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 

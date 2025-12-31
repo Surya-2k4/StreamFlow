@@ -460,14 +460,15 @@ function switchMode(mode) {
     }
 
     // Reset Active States
-    [musicElements.navTv, musicElements.navMusic, newsElements.navNews, radioElements.navRadio, document.getElementById('navWeather')].forEach(el => el.classList.remove('active'));
+    [musicElements.navTv, musicElements.navMusic, newsElements.navNews, radioElements.navRadio, document.getElementById('navWeather'), document.getElementById('navFocus')].forEach(el => el.classList.remove('active'));
 
     // Hide Sections
     musicElements.tvSection.style.display = 'none';
     musicElements.musicSection.style.display = 'none';
     newsElements.newsSection.style.display = 'none';
     radioElements.radioSection.style.display = 'none';
-    weatherElements.section.style.display = 'none'; // Explicitly hide weather
+    weatherElements.section.style.display = 'none';
+    document.getElementById('focusSection').style.display = 'none';
 
     // Hide Search Bars
     musicElements.tvSearchBar.style.display = 'none';
@@ -512,6 +513,9 @@ function switchMode(mode) {
     } else if (mode === 'weather') {
         document.getElementById('navWeather').classList.add('active');
         weatherElements.section.style.display = 'block';
+    } else if (mode === 'focus') {
+        document.getElementById('navFocus').classList.add('active');
+        document.getElementById('focusSection').style.display = 'block';
     }
 }
 
@@ -1191,5 +1195,165 @@ function initWeather() {
     }
 }
 
+
+// --- Focus Mode Feature ---
+let focusInterval;
+let timeLeft = 25 * 60;
+let isTimerRunning = false;
+let brownNoiseNode = null;
+
+const focusElements = {
+    section: document.getElementById('focusSection'),
+    timerDisplay: document.getElementById('focusTimer'),
+    btnStart: document.getElementById('startTimerBtn'),
+    btnReset: document.getElementById('resetTimerBtn'),
+    modeBtns: document.querySelectorAll('.mode-btn'),
+    btnBrownNoise: document.getElementById('btnBrownNoise'),
+    btnLofi: document.getElementById('btnLofiFocus'),
+    navFocus: document.getElementById('navFocus')
+};
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+function updateTimerDisplay() {
+    focusElements.timerDisplay.textContent = formatTime(timeLeft);
+    document.title = `${formatTime(timeLeft)} - Focus | StreamFlow`;
+}
+
+function startTimer() {
+    if (isTimerRunning) return;
+    isTimerRunning = true;
+    focusElements.btnStart.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    focusElements.btnStart.classList.add('active'); // Visual pulse if needed
+
+    focusInterval = setInterval(() => {
+        if (timeLeft > 0) {
+            timeLeft--;
+            updateTimerDisplay();
+        } else {
+            clearInterval(focusInterval);
+            isTimerRunning = false;
+            focusElements.btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+            // Play alarm sound (beeps)
+            playSimpleBeep();
+            alert("Session Complete!");
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(focusInterval);
+    isTimerRunning = false;
+    focusElements.btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+}
+
+function resetTimer() {
+    pauseTimer();
+    const activeMode = document.querySelector('.mode-btn.active').dataset.mode;
+    if (activeMode === 'focus') timeLeft = 25 * 60;
+    else if (activeMode === 'short') timeLeft = 5 * 60;
+    else if (activeMode === 'long') timeLeft = 15 * 60;
+
+    updateTimerDisplay();
+    focusElements.btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    document.title = "StreamFlow - Live TV";
+}
+
+function playSimpleBeep() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+}
+
+// Brown Noise Generator (Web Audio API)
+function toggleBrownNoise() {
+    if (brownNoiseNode) {
+        // Stop
+        brownNoiseNode.disconnect();
+        brownNoiseNode = null;
+        focusElements.btnBrownNoise.classList.remove('active');
+    } else {
+        // Start
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const bufferSize = 2 * ctx.sampleRate;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            output[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = output[i];
+            output[i] *= 3.5; // Compensate for gain
+        }
+
+        const noiseSrc = ctx.createBufferSource();
+        noiseSrc.buffer = buffer;
+        noiseSrc.loop = true;
+
+        // Filter to make it "Brown" / Warm
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+
+        const gain = ctx.createGain();
+        gain.gain.value = 0.5; // default volume
+
+        noiseSrc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noiseSrc.start();
+
+        brownNoiseNode = gain; // Store gain node to disconnect later
+        focusElements.btnBrownNoise.classList.add('active');
+    }
+}
+let lastOut = 0;
+
+function initFocus() {
+    // Timer Controls
+    focusElements.btnStart.addEventListener('click', () => {
+        if (isTimerRunning) pauseTimer();
+        else startTimer();
+    });
+
+    focusElements.btnReset.addEventListener('click', resetTimer);
+
+    // Mode Buttons
+    focusElements.modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            focusElements.modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            resetTimer();
+        });
+    });
+
+    // Sounds
+    focusElements.btnBrownNoise.addEventListener('click', toggleBrownNoise);
+
+    // Lofi Shortcut (Switches to Radio and searches for 'lofi')
+    focusElements.btnLofi.addEventListener('click', () => {
+        switchMode('radio');
+        // Auto-search logic
+        radioElements.radioGenre.value = 'pop'; // fallback or similar
+        // Or trigger search manually
+        // Note: We don't have a direct 'Lofi' genre in the dropdown but we can simulate search
+        alert("Pro Tip: Search for 'Chill' or 'Lofi' in the Radio tab!");
+    });
+
+    // Nav Listener
+    focusElements.navFocus.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchMode('focus');
+    });
+}
+
 initApp();
 initWeather();
+initFocus();
