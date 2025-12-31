@@ -339,4 +339,150 @@ elements.searchInput.addEventListener('input', (e) => {
     }
 });
 
+// --- Music Feature Integration ---
+
+const musicElements = {
+    navTv: document.getElementById('navTv'),
+    navMusic: document.getElementById('navMusic'),
+    tvSection: document.getElementById('tvSection'),
+    musicSection: document.getElementById('musicSection'),
+    tvSearchBar: document.getElementById('tvSearchBar'),
+    musicSearchBar: document.getElementById('musicSearchBar'),
+    musicSearchInput: document.getElementById('musicSearchInput'),
+    musicGrid: document.getElementById('musicGrid'),
+    musicPlaceholder: document.getElementById('musicPlaceholder'),
+    audioPlayer: document.getElementById('audioPlayer'),
+    musicCover: document.getElementById('musicCover'),
+    musicTitle: document.getElementById('musicTitle'),
+    musicArtist: document.getElementById('musicArtist')
+};
+
+// Mode Switching
+function switchMode(mode) {
+    if (mode === 'tv') {
+        musicElements.navTv.classList.add('active');
+        musicElements.navMusic.classList.remove('active');
+        musicElements.tvSection.style.display = 'flex';
+        musicElements.musicSection.style.display = 'none';
+        musicElements.tvSearchBar.style.display = 'block';
+        musicElements.musicSearchBar.style.display = 'none';
+        // Pause music if switching to TV
+        musicElements.audioPlayer.pause();
+    } else {
+        musicElements.navTv.classList.remove('active');
+        musicElements.navMusic.classList.add('active');
+        musicElements.tvSection.style.display = 'none';
+        musicElements.musicSection.style.display = 'flex';
+        musicElements.tvSearchBar.style.display = 'none';
+        musicElements.musicSearchBar.style.display = 'block';
+        // Pause video if switching to Music
+        elements.video.pause();
+    }
+}
+
+musicElements.navTv.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchMode('tv');
+});
+
+musicElements.navMusic.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchMode('music');
+});
+
+// Music Search
+let musicDebounceTimer;
+musicElements.musicSearchInput.addEventListener('input', (e) => {
+    clearTimeout(musicDebounceTimer);
+    const query = e.target.value.trim();
+
+    if (query.length < 2) return;
+
+    musicDebounceTimer = setTimeout(() => {
+        searchMusic(query);
+    }, 500);
+});
+
+async function searchMusic(query) {
+    musicElements.musicGrid.innerHTML = `
+        <div class="loading-spinner" style="grid-column: 1/-1;">
+            <div class="spinner"></div>
+            <p>Searching for "${query}"...</p>
+        </div>
+    `;
+
+    try {
+        // Using 'seevn' (Saavn) engine as it's often reliable for this API
+        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=25`);
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        const data = await response.json();
+        const results = data.results;
+
+        if (!results || results.length === 0) {
+            musicElements.musicGrid.innerHTML = '<p style="text-align: center; width: 100%; color: var(--text-secondary);">No songs found.</p>';
+            return;
+        }
+
+        renderMusicResults(results);
+
+    } catch (error) {
+        console.error('Music Search Error:', error);
+        musicElements.musicGrid.innerHTML = `<p style="color: #ef4444; text-align: center; width: 100%;">Failed to search music. Please try again.</p>`;
+    }
+}
+
+function renderMusicResults(songs) {
+    musicElements.musicGrid.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    songs.forEach(song => {
+        const card = document.createElement('div');
+        card.className = 'channel-card'; // Reuse existing card style
+
+        // Get higher resolution image
+        const imgUrl = song.artworkUrl100 ? song.artworkUrl100.replace('100x100', '300x300') : 'https://via.placeholder.com/100';
+
+        card.innerHTML = `
+            <img src="${imgUrl}" alt="${song.trackName}" class="channel-logo" style="border-radius: 4px;">
+            <div class="channel-details">
+                <div class="channel-name" title="${song.trackName}">${song.trackName}</div>
+                <div class="channel-group" title="${song.artistName}">${song.artistName}</div>
+            </div>
+        `;
+
+        card.onclick = () => playMusic(song, card);
+        fragment.appendChild(card);
+    });
+
+    musicElements.musicGrid.appendChild(fragment);
+}
+
+function playMusic(song, cardElement) {
+    // Highlight active card
+    document.querySelector('#musicGrid .active')?.classList.remove('active');
+    if (cardElement) cardElement.classList.add('active');
+
+    // Update Player UI
+    musicElements.musicTitle.textContent = song.trackName;
+    musicElements.musicArtist.textContent = song.artistName;
+
+    if (song.artworkUrl100) {
+        const highResRaw = song.artworkUrl100.replace('100x100', '600x600');
+        musicElements.musicCover.src = highResRaw;
+        musicElements.musicCover.style.display = 'block';
+        document.querySelector('.album-art-large i').style.display = 'none';
+    }
+
+    // Play Audio (Preview URL)
+    const audioUrl = song.previewUrl;
+
+    if (audioUrl) {
+        musicElements.audioPlayer.src = audioUrl;
+        musicElements.audioPlayer.play().catch(e => console.error("Audio play failed:", e));
+    } else {
+        alert("Audio preview not available for this song.");
+    }
+}
+
 initApp();

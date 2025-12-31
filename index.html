@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3187/3187913.png" type="image/x-icon">
 </head>
 
 <body>
@@ -20,13 +21,25 @@
                 <i class="fa-solid fa-play-circle"></i>
                 <span>StreamFlow</span>
             </div>
-            <div class="search-bar">
+            <nav class="nav-links">
+                <a href="#" class="nav-link active" id="navTv">
+                    <i class="fa-solid fa-tv"></i> TV Channels
+                </a>
+                <a href="#" class="nav-link" id="navMusic">
+                    <i class="fa-solid fa-music"></i> Music
+                </a>
+            </nav>
+            <div class="search-bar" id="tvSearchBar">
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search channels...">
             </div>
+            <div class="search-bar" id="musicSearchBar" style="display: none;">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="musicSearchInput" placeholder="Search songs...">
+            </div>
         </header>
 
-        <main class="main-content">
+        <main class="main-content" id="tvSection">
             <section class="player-section">
                 <div class="video-container" id="videoContainer">
                     <video id="video" controls crossorigin="anonymous"></video>
@@ -72,9 +85,38 @@
                     </div>
                 </div>
             </section>
-            <div class="copyright-footer">
-                <p>&copy; 2026 Surya. All rights reserved.</p>
-            </div>
+        </main>
+
+        <!-- Music Section (Hidden by Default) -->
+        <main class="main-content" id="musicSection" style="display: none;">
+            <section class="player-section">
+                <div class="music-player-container">
+                    <div class="album-art-large">
+                        <i class="fa-solid fa-music"></i>
+                        <img id="musicCover" src="" alt="Album Art" style="display: none;">
+                    </div>
+                    <div class="music-info">
+                        <h2 id="musicTitle">No Song Selected</h2>
+                        <p id="musicArtist">Select a song to play</p>
+                    </div>
+                    <audio id="audioPlayer" controls></audio>
+                </div>
+            </section>
+
+            <section class="channels-section">
+                <div class="channels-header">
+                    <h3>Search Results</h3>
+                </div>
+                <div class="channels-grid" id="musicGrid">
+                    <div class="loading-spinner" id="musicPlaceholder" style="padding: 20px; text-align: center;">
+                        <p>Search for a song to start listening</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="copyright-footer">
+            <p>&copy; 2026 Surya. All rights reserved.</p>
+        </div>
         </main>
     </div>
 
