@@ -28,6 +28,9 @@
                 <a href="#" class="nav-link" id="navMusic">
                     <i class="fa-solid fa-music"></i> Music
                 </a>
+                <a href="#" class="nav-link" id="navNews">
+                    <i class="fa-solid fa-newspaper"></i> News
+                </a>
             </nav>
             <div class="search-bar" id="tvSearchBar">
                 <i class="fa-solid fa-search"></i>
@@ -36,6 +39,10 @@
             <div class="search-bar" id="musicSearchBar" style="display: none;">
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="musicSearchInput" placeholder="Search songs...">
+            </div>
+            <div class="search-bar" id="newsSearchBar" style="display: none;">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="newsSearchInput" placeholder="Search headlines...">
             </div>
         </header>
 
@@ -110,6 +117,43 @@
                 <div class="channels-grid" id="musicGrid">
                     <div class="loading-spinner" id="musicPlaceholder" style="padding: 20px; text-align: center;">
                         <p>Search for a song to start listening</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- News Section (Hidden by Default) -->
+        <main class="main-content" id="newsSection" style="display: none;">
+            <section class="channels-section" style="width: 100%; border: none; padding-bottom: 80px;">
+                <div class="channels-header">
+                    <h3>Top Headlines</h3>
+                    <div class="news-controls" style="display: flex; gap: 10px; align-items: center;">
+                        <button id="refreshNewsBtn" class="icon-btn" title="Refresh News">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <select id="newsCountry">
+                            <option value="us">USA</option>
+                            <option value="in">India</option>
+                            <option value="gb">UK</option>
+                            <option value="au">Australia</option>
+                            <option value="fr">France</option>
+                            <option value="ru">Russia</option>
+                        </select>
+                        <select id="newsCategory">
+                            <option value="general">General</option>
+                            <option value="technology">Technology</option>
+                            <option value="business">Business</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="sports">Sports</option>
+                            <option value="science">Science</option>
+                            <option value="health">Health</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="news-grid" id="newsGrid">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Loading headlines...</p>
                     </div>
                 </div>
             </section>

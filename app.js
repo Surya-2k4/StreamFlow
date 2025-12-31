@@ -357,26 +357,68 @@ const musicElements = {
     musicArtist: document.getElementById('musicArtist')
 };
 
+const newsElements = {
+    navNews: document.getElementById('navNews'),
+    newsSection: document.getElementById('newsSection'),
+    newsSearchBar: document.getElementById('newsSearchBar'),
+    newsGrid: document.getElementById('newsGrid'),
+    newsCountry: document.getElementById('newsCountry'),
+    newsCategory: document.getElementById('newsCategory'),
+    newsSearchInput: document.getElementById('newsSearchInput'),
+    refreshBtn: document.getElementById('refreshNewsBtn')
+};
+
+let newsAutoRefreshInterval = null;
+
 // Mode Switching
 function switchMode(mode) {
+    // Stop any active auto-refresh
+    if (newsAutoRefreshInterval) {
+        clearInterval(newsAutoRefreshInterval);
+        newsAutoRefreshInterval = null;
+    }
+
+    // Reset Active States
+    [musicElements.navTv, musicElements.navMusic, newsElements.navNews].forEach(el => el.classList.remove('active'));
+
+    // Hide Sections
+    musicElements.tvSection.style.display = 'none';
+    musicElements.musicSection.style.display = 'none';
+    newsElements.newsSection.style.display = 'none';
+
+    // Hide Search Bars
+    musicElements.tvSearchBar.style.display = 'none';
+    musicElements.musicSearchBar.style.display = 'none';
+    newsElements.newsSearchBar.style.display = 'none';
+
+    // Pause Media
+    elements.video.pause();
+    musicElements.audioPlayer.pause();
+
+    // Activate Mode
     if (mode === 'tv') {
         musicElements.navTv.classList.add('active');
-        musicElements.navMusic.classList.remove('active');
         musicElements.tvSection.style.display = 'flex';
-        musicElements.musicSection.style.display = 'none';
-        musicElements.tvSearchBar.style.display = 'block';
-        musicElements.musicSearchBar.style.display = 'none';
-        // Pause music if switching to TV
-        musicElements.audioPlayer.pause();
-    } else {
-        musicElements.navTv.classList.remove('active');
+        musicElements.tvSearchBar.style.display = 'flex';
+    } else if (mode === 'music') {
         musicElements.navMusic.classList.add('active');
-        musicElements.tvSection.style.display = 'none';
         musicElements.musicSection.style.display = 'flex';
-        musicElements.tvSearchBar.style.display = 'none';
-        musicElements.musicSearchBar.style.display = 'block';
-        // Pause video if switching to Music
-        elements.video.pause();
+        musicElements.musicSearchBar.style.display = 'flex';
+    } else if (mode === 'news') {
+        newsElements.navNews.classList.add('active');
+        newsElements.newsSection.style.display = 'flex';
+        newsElements.newsSearchBar.style.display = 'flex';
+
+        // Initial load if empty
+        if (newsElements.newsGrid.children.length <= 1) {
+            fetchNews();
+        }
+
+        // Start Auto-Refresh (every 2 minutes)
+        newsAutoRefreshInterval = setInterval(() => {
+            console.log('Auto-refreshing news...');
+            fetchNews(true); // check for true in fetchNews to show non-intrusive loading if needed
+        }, 120000);
     }
 }
 
@@ -388,6 +430,11 @@ musicElements.navTv.addEventListener('click', (e) => {
 musicElements.navMusic.addEventListener('click', (e) => {
     e.preventDefault();
     switchMode('music');
+});
+
+newsElements.navNews.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchMode('news');
 });
 
 // Music Search
@@ -484,5 +531,168 @@ function playMusic(song, cardElement) {
         alert("Audio preview not available for this song.");
     }
 }
+
+// --- News Feature Integration ---
+
+let allNews = [];
+
+// Mapping for Google News parameters
+const countryConfig = {
+    'us': { lang: 'en', gl: 'US', ceid: 'US:en' },
+    'in': { lang: 'en', gl: 'IN', ceid: 'IN:en' },
+    'gb': { lang: 'en', gl: 'GB', ceid: 'GB:en' },
+    'au': { lang: 'en', gl: 'AU', ceid: 'AU:en' },
+    'fr': { lang: 'fr', gl: 'FR', ceid: 'FR:fr' },
+    'ru': { lang: 'ru', gl: 'RU', ceid: 'RU:ru' }
+};
+
+async function fetchNews() {
+    const country = newsElements.newsCountry.value;
+    const category = newsElements.newsCategory.value;
+    const config = countryConfig[country] || countryConfig['us'];
+
+    newsElements.newsGrid.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading live headlines for ${category} (${country.toUpperCase()})...</p>
+        </div>
+    `;
+
+    try {
+        // Construct Google News RSS URL
+        let rssUrl = '';
+        if (category === 'general') {
+            rssUrl = `https://news.google.com/rss?hl=${config.lang}-${config.gl}&gl=${config.gl}&ceid=${config.ceid}`;
+        } else {
+            // Google News Topics are usually uppercase e.g. TECHNOLOGY
+            rssUrl = `https://news.google.com/rss/headlines/section/topic/${category.toUpperCase()}?hl=${config.lang}-${config.gl}&gl=${config.gl}&ceid=${config.ceid}`;
+        }
+
+        // Use rss2json to convert RSS to JSON
+        const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+
+        if (!response.ok) throw new Error('Failed to fetch news feed');
+
+        const data = await response.json();
+
+        if (data.status !== 'ok') {
+            throw new Error('Feed conversion failed');
+        }
+
+        allNews = data.items;
+        renderNews(allNews);
+
+    } catch (error) {
+        console.error('News Fetch Error:', error);
+        newsElements.newsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 20px;">
+                <p style="color: #ef4444; margin-bottom: 10px;">Failed to load live news.</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">${error.message}</p>
+                <button onclick="fetchNews()" class="read-more-btn" style="background: var(--surface-hover); margin-top: 10px; cursor: pointer;">Retry</button>
+            </div>`;
+    }
+}
+
+function renderNews(articles) {
+    newsElements.newsGrid.innerHTML = '';
+
+    if (!articles || articles.length === 0) {
+        newsElements.newsGrid.innerHTML = '<p style="text-align: center; width: 100%; color: var(--text-secondary);">No headlines found.</p>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    articles.forEach(article => {
+        const card = document.createElement('div');
+        card.className = 'news-card';
+
+        // 1. Try standard RSS fields
+        let imgUrl = article.enclosure?.link || article.thumbnail;
+
+        // 2. Try to extract image from description if standard fields fail
+        if (!imgUrl && article.description) {
+            const imgMatch = article.description.match(/src="([^"]+)"/);
+            if (imgMatch && imgMatch[1]) {
+                imgUrl = imgMatch[1];
+            }
+        }
+
+        // 3. Fallback: Generate a unique consistent image based on the article title
+        if (!imgUrl) {
+            const seed = encodeURIComponent(article.title.substring(0, 20).replace(/[^a-zA-Z0-9]/g, ''));
+            imgUrl = `https://picsum.photos/seed/${seed}/600/400`;
+        }
+
+        // Handle date
+        let dateStr = 'Just now';
+        try {
+            dateStr = new Date(article.pubDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch (e) { }
+
+        // Clean title (Google News often adds "- SourceName" at the end)
+        let title = article.title;
+        let sourceName = 'News Source';
+        const sourceMatch = title.lastIndexOf('-');
+        if (sourceMatch !== -1) {
+            sourceName = title.substring(sourceMatch + 1).trim();
+            title = title.substring(0, sourceMatch).trim();
+        }
+
+        card.innerHTML = `
+            <div class="news-image-container">
+                <img src="${imgUrl}" alt="News" class="news-image" loading="lazy" onerror="this.src='https://picsum.photos/seed/${Math.random()}/600/400'">
+            </div>
+            <div class="news-content">
+                <div class="news-source">
+                    <span>${sourceName}</span>
+                    <span>${dateStr}</span>
+                </div>
+                <div class="news-title" title="${article.title}">${title}</div>
+                <div class="news-footer">
+                    <a href="${article.link}" target="_blank" class="read-more-btn">Read Full Story <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+            </div>
+        `;
+        fragment.appendChild(card);
+    });
+
+    newsElements.newsGrid.appendChild(fragment);
+}
+
+function getCategoryPlaceholder(category) {
+    const placeholders = {
+        'general': 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600&auto=format&fit=crop',
+        'technology': 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600&auto=format&fit=crop',
+        'business': 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=600&auto=format&fit=crop',
+        'entertainment': 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?q=80&w=600&auto=format&fit=crop',
+        'sports': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop',
+        'science': 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=600&auto=format&fit=crop',
+        'health': 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=600&auto=format&fit=crop'
+    };
+    return placeholders[category] || placeholders['general'];
+}
+
+// News Filters
+newsElements.newsCountry.addEventListener('change', () => fetchNews());
+newsElements.newsCategory.addEventListener('change', () => fetchNews());
+newsElements.refreshBtn.addEventListener('click', () => {
+    // Add rotation animation reset
+    const icon = newsElements.refreshBtn.querySelector('i');
+    icon.style.transition = 'transform 1s ease';
+    icon.style.transform = 'rotate(360deg)';
+    setTimeout(() => { icon.style.transform = 'none'; icon.style.transition = 'all 0.3s ease'; }, 1000);
+
+    fetchNews();
+});
+
+// News Search (Client-side)
+newsElements.newsSearchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = allNews.filter(article =>
+        (article.title && article.title.toLowerCase().includes(query))
+    );
+    renderNews(filtered);
+});
 
 initApp();
