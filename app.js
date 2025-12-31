@@ -1361,7 +1361,7 @@ function initFocus() {
 // --- Global Chat Feature (MQTT) ---
 let mqttClient;
 const MQTT_BROKER = "broker.hivemq.com";
-const MQTT_PORT = 8000;
+// Port will be determined dynamically
 const MQTT_TOPIC = "streamflow/chat/global";
 const CHAT_CLIENT_ID = "streamflow_user_" + Math.random().toString(16).substr(2, 8);
 
@@ -1376,18 +1376,24 @@ const chatElements = {
 };
 
 function initChat() {
-    // 1. Setup Client
-    // @ts-ignore
-    mqttClient = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, CHAT_CLIENT_ID);
+    // 1. Determine Port (WSS vs WS)
+    const isSecure = window.location.protocol === "https:";
+    const port = isSecure ? 8884 : 8000;
 
-    // 2. Callbacks
+    console.log(`Initializing Chat: ${isSecure ? 'Secure (WSS)' : 'Insecure (WS)'} on port ${port}`);
+
+    // 2. Setup Client
+    // @ts-ignore
+    mqttClient = new Paho.MQTT.Client(MQTT_BROKER, port, CHAT_CLIENT_ID);
+
+    // 3. Callbacks
     mqttClient.onConnectionLost = onConnectionLost;
     mqttClient.onMessageArrived = onMessageArrived;
 
-    // 3. Connect
-    connectToChat();
+    // 4. Connect
+    connectToChat(isSecure);
 
-    // 4. Listeners
+    // 5. Listeners
     chatElements.btnSend.addEventListener('click', sendChatMessage);
     chatElements.inputMsg.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendChatMessage();
@@ -1396,13 +1402,12 @@ function initChat() {
     chatElements.navChat.addEventListener('click', (e) => {
         e.preventDefault();
         switchMode('chat');
-        // Reconnect if disconnected when entering view?
-        if (!mqttClient.isConnected()) connectToChat();
+        if (!mqttClient.isConnected()) connectToChat(window.location.protocol === "https:");
         scrollToBottom();
     });
 }
 
-function connectToChat() {
+function connectToChat(useSSL) {
     chatElements.status.textContent = "Connecting...";
     chatElements.status.className = "status-badge connecting";
 
@@ -1410,10 +1415,12 @@ function connectToChat() {
         onSuccess: onConnect,
         onFailure: (e) => {
             console.error("MQTT Connect Failed", e);
-            chatElements.status.textContent = "Offline";
+            chatElements.status.textContent = "Offline (Click to Retry)";
             chatElements.status.className = "status-badge disconnected";
+            chatElements.status.onclick = () => connectToChat(window.location.protocol === "https:");
         },
-        useSSL: window.location.protocol === "https:" // Secure WS if hosted on HTTPS
+        useSSL: useSSL,
+        keepAliveInterval: 30
     });
 }
 
