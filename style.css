@@ -1050,3 +1050,163 @@ video {
 .channels-section::-webkit-scrollbar-thumb {
     background: var(--accent-color);
 }
+
+/* Chat UI Styles */
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+}
+
+.chat-header-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.status-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.status-badge.connecting {
+    background: #eab308;
+    color: black;
+}
+
+.status-badge.connected {
+    background: #22c55e;
+    color: white;
+}
+
+.status-badge.disconnected {
+    background: #ef4444;
+    color: white;
+}
+
+.chat-messages {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    scroll-behavior: smooth;
+    border: 1px solid var(--border-color);
+}
+
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease;
+}
+
+.message.self {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.message.other {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.message.system {
+    align-self: center;
+    text-align: center;
+    max-width: 100%;
+    opacity: 0.7;
+    margin: 10px 0;
+}
+
+.msg-sender {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    margin-left: 5px;
+}
+
+.message.self .msg-sender {
+    margin-right: 5px;
+}
+
+.msg-content {
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.message.self .msg-content {
+    background: var(--accent-color);
+    color: white;
+    border-bottom-right-radius: 2px;
+}
+
+.message.other .msg-content {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border-bottom-left-radius: 2px;
+}
+
+.message.system .msg-content {
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    font-size: 0.8rem;
+    padding: 5px 15px;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+    background: var(--surface-color);
+    padding: 15px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+#chatNickInput {
+    width: 80px;
+    flex-shrink: 0;
+    text-align: center;
+    border-right: 1px solid var(--border-color);
+    border-radius: 8px 0 0 8px;
+    background: transparent;
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+#chatMsgInput {
+    flex: 1;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+}

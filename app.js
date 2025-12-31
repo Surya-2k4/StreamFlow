@@ -460,7 +460,7 @@ function switchMode(mode) {
     }
 
     // Reset Active States
-    [musicElements.navTv, musicElements.navMusic, newsElements.navNews, radioElements.navRadio, document.getElementById('navWeather'), document.getElementById('navFocus')].forEach(el => el.classList.remove('active'));
+    [musicElements.navTv, musicElements.navMusic, newsElements.navNews, radioElements.navRadio, document.getElementById('navWeather'), document.getElementById('navFocus'), document.getElementById('navChat')].forEach(el => el.classList.remove('active'));
 
     // Hide Sections
     musicElements.tvSection.style.display = 'none';
@@ -469,6 +469,7 @@ function switchMode(mode) {
     radioElements.radioSection.style.display = 'none';
     weatherElements.section.style.display = 'none';
     document.getElementById('focusSection').style.display = 'none';
+    document.getElementById('chatSection').style.display = 'none';
 
     // Hide Search Bars
     musicElements.tvSearchBar.style.display = 'none';
@@ -516,6 +517,9 @@ function switchMode(mode) {
     } else if (mode === 'focus') {
         document.getElementById('navFocus').classList.add('active');
         document.getElementById('focusSection').style.display = 'block';
+    } else if (mode === 'chat') {
+        document.getElementById('navChat').classList.add('active');
+        document.getElementById('chatSection').style.display = 'block';
     }
 }
 
@@ -1354,6 +1358,145 @@ function initFocus() {
     });
 }
 
+// --- Global Chat Feature (MQTT) ---
+let mqttClient;
+const MQTT_BROKER = "broker.hivemq.com";
+const MQTT_PORT = 8000;
+const MQTT_TOPIC = "streamflow/chat/global";
+const CHAT_CLIENT_ID = "streamflow_user_" + Math.random().toString(16).substr(2, 8);
+
+const chatElements = {
+    section: document.getElementById('chatSection'),
+    messages: document.getElementById('chatMessages'),
+    inputNick: document.getElementById('chatNickInput'),
+    inputMsg: document.getElementById('chatMsgInput'),
+    btnSend: document.getElementById('sendMsgBtn'),
+    status: document.getElementById('connectionStatus'),
+    navChat: document.getElementById('navChat')
+};
+
+function initChat() {
+    // 1. Setup Client
+    // @ts-ignore
+    mqttClient = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, CHAT_CLIENT_ID);
+
+    // 2. Callbacks
+    mqttClient.onConnectionLost = onConnectionLost;
+    mqttClient.onMessageArrived = onMessageArrived;
+
+    // 3. Connect
+    connectToChat();
+
+    // 4. Listeners
+    chatElements.btnSend.addEventListener('click', sendChatMessage);
+    chatElements.inputMsg.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
+
+    chatElements.navChat.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchMode('chat');
+        // Reconnect if disconnected when entering view?
+        if (!mqttClient.isConnected()) connectToChat();
+        scrollToBottom();
+    });
+}
+
+function connectToChat() {
+    chatElements.status.textContent = "Connecting...";
+    chatElements.status.className = "status-badge connecting";
+
+    mqttClient.connect({
+        onSuccess: onConnect,
+        onFailure: (e) => {
+            console.error("MQTT Connect Failed", e);
+            chatElements.status.textContent = "Offline";
+            chatElements.status.className = "status-badge disconnected";
+        },
+        useSSL: window.location.protocol === "https:" // Secure WS if hosted on HTTPS
+    });
+}
+
+function onConnect() {
+    console.log("MQTT Connected");
+    chatElements.status.textContent = "Online";
+    chatElements.status.className = "status-badge connected";
+
+    // Subscribe
+    mqttClient.subscribe(MQTT_TOPIC);
+}
+
+function onConnectionLost(responseObject) {
+    if (responseObject.errorCode !== 0) {
+        console.log("MQTT Connection Lost: " + responseObject.errorMessage);
+        chatElements.status.textContent = "Disconnected";
+        chatElements.status.className = "status-badge disconnected";
+    }
+}
+
+function onMessageArrived(message) {
+    try {
+        const payload = JSON.parse(message.payloadString);
+        renderMessage(payload.nick, payload.text, payload.senderId === CHAT_CLIENT_ID);
+    } catch (e) {
+        console.error("Invalid msg format", e);
+    }
+}
+
+function sendChatMessage() {
+    const text = chatElements.inputMsg.value.trim();
+    const nick = chatElements.inputNick.value.trim() || "Anonymous";
+
+    if (!text) return;
+    if (!mqttClient.isConnected()) {
+        alert("Not connected to chat server!");
+        connectToChat();
+        return;
+    }
+
+    const payload = {
+        senderId: CHAT_CLIENT_ID,
+        nick: nick,
+        text: text,
+        timestamp: Date.now()
+    };
+
+    const message = new Paho.MQTT.Message(JSON.stringify(payload));
+    message.destinationName = MQTT_TOPIC;
+    mqttClient.send(message);
+
+    chatElements.inputMsg.value = "";
+}
+
+function renderMessage(nick, text, isSelf) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${isSelf ? 'self' : 'other'}`;
+
+    msgDiv.innerHTML = `
+        <span class="msg-sender">${escapeHtml(nick)}</span>
+        <span class="msg-content">${escapeHtml(text)}</span>
+    `;
+
+    chatElements.messages.appendChild(msgDiv);
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    chatElements.messages.scrollTop = chatElements.messages.scrollHeight;
+}
+
+function escapeHtml(text) {
+    if (!text) return "";
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
 initApp();
 initWeather();
 initFocus();
+initChat();

@@ -13,9 +13,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4406/4406124.png" type="image/x-icon">
-</head> 
+</head>
 
 <body>
     <div class="app-container">
@@ -42,6 +43,9 @@
                 </a>
                 <a href="#" class="nav-link" id="navFocus">
                     <i class="fa-solid fa-brain"></i> Focus
+                </a>
+                <a href="#" class="nav-link" id="navChat">
+                    <i class="fa-solid fa-comments"></i> Chat
                 </a>
             </nav>
             <div class="search-bar" id="tvSearchBar">
@@ -346,6 +350,31 @@
                     </div>
                 </div>
 
+            </div>
+        </main>
+        <!-- Chat Section -->
+        <main class="main-content" id="chatSection" style="display: none;">
+            <div class="chat-container">
+                <div class="chat-header-card">
+                    <h2><i class="fa-solid fa-earth-americas"></i> Global Community</h2>
+                    <p>Live chat with other StreamFlow users worldwide.</p>
+                    <div id="connectionStatus" class="status-badge connecting">Connecting...</div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">
+                        <span class="msg-content">Welcome to the global stream! Say hello. 👋</span>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="chatNickInput" placeholder="Name" maxlength="15">
+                    <input type="text" id="chatMsgInput" placeholder="Type a message..." maxlength="140">
+                    <button id="sendMsgBtn" class="action-btn primary"
+                        style="padding: 10px 20px; border-radius: 12px; font-size: 1rem;">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
             </div>
         </main>
     </div>
