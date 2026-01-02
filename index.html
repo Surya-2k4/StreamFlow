@@ -9,7 +9,7 @@
     <meta name="author" content="Surya">
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; connect-src 'self' https: wss://broker.hivemq.com;">
+        content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; connect-src 'self' https: wss: wss://broker.emqx.io:8084 wss://broker.emqx.io wss://broker.hivemq.com;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4406/4406124.png" type="image/x-icon">
 </head>
@@ -54,22 +54,7 @@
                     <i class="fa-solid fa-comments"></i> Chat
                 </a>
             </nav>
-            <div class="search-bar" id="tvSearchBar">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search channels...">
-            </div>
-            <div class="search-bar" id="musicSearchBar" style="display: none;">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="musicSearchInput" placeholder="Search songs...">
-            </div>
-            <div class="search-bar" id="newsSearchBar" style="display: none;">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="newsSearchInput" placeholder="Search headlines...">
-            </div>
-            <div class="search-bar" id="radioSearchBar" style="display: none;">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="radioSearchInput" placeholder="Search stations...">
-            </div>
+
 
         </header>
 
@@ -111,6 +96,10 @@
                         <span id="channelCount">0 channels</span>
                     </div>
                 </div>
+                <div class="search-bar" id="tvSearchBar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search channels...">
+                </div>
                 <div class="channels-grid" id="channelsGrid">
                     <!-- Channels will be injected here -->
                     <div class="loading-spinner" id="loadingSpinner">
@@ -141,6 +130,10 @@
                 <div class="channels-header">
                     <h3>Search Results</h3>
                 </div>
+                <div class="search-bar" id="musicSearchBar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="musicSearchInput" placeholder="Search songs...">
+                </div>
                 <div class="channels-grid" id="musicGrid">
                     <div class="loading-spinner" id="musicPlaceholder" style="padding: 20px; text-align: center;">
                         <p>Search for a song to start listening</p>
@@ -154,6 +147,10 @@
             <section class="channels-section" style="width: 100%; border: none; padding-bottom: 80px;">
                 <div class="channels-header">
                     <h3>Top Headlines</h3>
+                </div>
+                <div class="search-bar" id="newsSearchBar" style="margin-bottom: 20px;">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="newsSearchInput" placeholder="Search headlines...">
                 </div>
                 <div class="news-controls" style="display: flex; gap: 10px; align-items: center;">
                     <button id="refreshNewsBtn" class="icon-btn" title="Refresh News">
@@ -248,6 +245,10 @@
                             <option value="rock">Rock</option>
                         </select>
                     </div>
+                </div>
+                <div class="search-bar" id="radioSearchBar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="radioSearchInput" placeholder="Search stations...">
                 </div>
                 <!-- Hidden grid when using tuner primarily, but kept for browsing -->
                 <div class="channels-grid" id="radioGrid">

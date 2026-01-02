@@ -198,11 +198,10 @@ body {
 
 .search-bar {
     position: relative;
-    width: 300px;
-    /* Reduced width */
-    margin-right: 0;
+    width: 100%;
+    margin-bottom: 20px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .copyright-footer {

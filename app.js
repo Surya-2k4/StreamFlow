@@ -503,12 +503,6 @@ function switchMode(mode) {
     document.getElementById('focusSection').style.display = 'none';
     document.getElementById('chatSection').style.display = 'none';
 
-    // Hide Search Bars
-    musicElements.tvSearchBar.style.display = 'none';
-    musicElements.musicSearchBar.style.display = 'none';
-    newsElements.newsSearchBar.style.display = 'none';
-    radioElements.radioSearchBar.style.display = 'none';
-
     // Pause Media
     elements.video.pause();
     musicElements.audioPlayer.pause();
@@ -518,15 +512,12 @@ function switchMode(mode) {
     if (mode === 'tv') {
         musicElements.navTv.classList.add('active');
         musicElements.tvSection.style.display = 'flex';
-        musicElements.tvSearchBar.style.display = 'flex';
     } else if (mode === 'music') {
         musicElements.navMusic.classList.add('active');
         musicElements.musicSection.style.display = 'flex';
-        musicElements.musicSearchBar.style.display = 'flex';
     } else if (mode === 'news') {
         newsElements.navNews.classList.add('active');
         newsElements.newsSection.style.display = 'grid'; // News uses grid
-        newsElements.newsSearchBar.style.display = 'flex';
 
         if (newsElements.newsGrid.children.length <= 1) {
             fetchNews();
@@ -538,7 +529,6 @@ function switchMode(mode) {
     } else if (mode === 'radio') {
         radioElements.navRadio.classList.add('active');
         radioElements.radioSection.style.display = 'flex'; // Must be Flex for 2-column layout
-        radioElements.radioSearchBar.style.display = 'flex';
 
         if (allStations.length === 0) {
             fetchRadioStations();
@@ -1523,12 +1513,11 @@ function initFocus() {
     });
 }
 
-// --- Global Chat Feature (MQTT) ---
-let mqttClient;
-const MQTT_BROKER = "broker.hivemq.com";
-// Port will be determined dynamically
+// --- Global Chat Feature (MQTT.js) ---
+let mqttClient = null;
+const MQTT_BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
 const MQTT_TOPIC = "streamflow/chat/global";
-const CHAT_CLIENT_ID = "streamflow_user_" + Math.random().toString(16).substr(2, 8);
+const CHAT_CLIENT_ID = "streamflow_" + Math.random().toString(16).substr(2, 8);
 
 const chatElements = {
     section: document.getElementById('chatSection'),
@@ -1541,78 +1530,82 @@ const chatElements = {
 };
 
 function initChat() {
-    // 1. Determine Port (WSS vs WS)
-    const isSecure = window.location.protocol === "https:";
-    const port = isSecure ? 8884 : 8000;
+    // 1. Attach Navigation Listener
+    if (chatElements.navChat) {
+        chatElements.navChat.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchMode('chat');
+            scrollToBottom();
 
-    console.log(`Initializing Chat: ${isSecure ? 'Secure (WSS)' : 'Insecure (WS)'} on port ${port}`);
+            // Reconnect if needed
+            if (mqttClient && !mqttClient.connected) {
+                mqttClient.reconnect();
+            }
+        });
+    }
 
-    // 2. Setup Client
-    // @ts-ignore
-    mqttClient = new Paho.MQTT.Client(MQTT_BROKER, port, CHAT_CLIENT_ID);
+    // 2. Initialize
+    connectChat();
+}
 
-    // 3. Callbacks
-    mqttClient.onConnectionLost = onConnectionLost;
-    mqttClient.onMessageArrived = onMessageArrived;
+function connectChat() {
+    if (typeof mqtt === 'undefined') {
+        console.error("MQTT.js not loaded");
+        chatElements.status.textContent = "Error: Library Missing";
+        chatElements.status.className = "status-badge disconnected";
+        // Try fallback if needed, but let's assume unpkg works
+        return;
+    }
 
-    // 4. Connect
-    connectToChat(isSecure);
+    console.log("Connecting to MQTT via MQTT.js...");
+    chatElements.status.textContent = "Connecting...";
+    chatElements.status.className = "status-badge connecting";
 
-    // 5. Listeners
+    mqttClient = mqtt.connect(MQTT_BROKER_URL, {
+        clientId: CHAT_CLIENT_ID,
+        keepalive: 60,
+        clean: true,
+        reconnectPeriod: 4000, // Auto-reconnect every 4s
+    });
+
+    mqttClient.on('connect', () => {
+        console.log("MQTT Connected");
+        chatElements.status.textContent = "Online";
+        chatElements.status.className = "status-badge connected";
+        mqttClient.subscribe(MQTT_TOPIC, (err) => {
+            if (!err) {
+                console.log("Subscribed to global chat");
+            }
+        });
+    });
+
+    mqttClient.on('message', (topic, message) => {
+        // message is Buffer
+        try {
+            const payload = JSON.parse(message.toString());
+            renderMessage(payload.nick, payload.text, payload.senderId === CHAT_CLIENT_ID);
+        } catch (e) {
+            console.error("Msg parse error", e);
+        }
+    });
+
+    mqttClient.on('error', (err) => {
+        console.error("MQTT Error:", err);
+        chatElements.status.textContent = "Error";
+        chatElements.status.className = "status-badge disconnected";
+    });
+
+    mqttClient.on('offline', () => {
+        console.log("MQTT Offline");
+        chatElements.status.textContent = "Offline";
+        chatElements.status.className = "status-badge disconnected";
+    });
+
+    // Listeners
     chatElements.btnSend.addEventListener('click', sendChatMessage);
     chatElements.inputMsg.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendChatMessage();
     });
-
-    chatElements.navChat.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchMode('chat');
-        if (!mqttClient.isConnected()) connectToChat(window.location.protocol === "https:");
-        scrollToBottom();
-    });
-}
-
-function connectToChat(useSSL) {
-    chatElements.status.textContent = "Connecting...";
-    chatElements.status.className = "status-badge connecting";
-
-    mqttClient.connect({
-        onSuccess: onConnect,
-        onFailure: (e) => {
-            console.error("MQTT Connect Failed", e);
-            chatElements.status.textContent = "Offline (Click to Retry)";
-            chatElements.status.className = "status-badge disconnected";
-            chatElements.status.onclick = () => connectToChat(window.location.protocol === "https:");
-        },
-        useSSL: useSSL,
-        keepAliveInterval: 30
-    });
-}
-
-function onConnect() {
-    console.log("MQTT Connected");
-    chatElements.status.textContent = "Online";
-    chatElements.status.className = "status-badge connected";
-
-    // Subscribe
-    mqttClient.subscribe(MQTT_TOPIC);
-}
-
-function onConnectionLost(responseObject) {
-    if (responseObject.errorCode !== 0) {
-        console.log("MQTT Connection Lost: " + responseObject.errorMessage);
-        chatElements.status.textContent = "Disconnected";
-        chatElements.status.className = "status-badge disconnected";
-    }
-}
-
-function onMessageArrived(message) {
-    try {
-        const payload = JSON.parse(message.payloadString);
-        renderMessage(payload.nick, payload.text, payload.senderId === CHAT_CLIENT_ID);
-    } catch (e) {
-        console.error("Invalid msg format", e);
-    }
 }
 
 function sendChatMessage() {
@@ -1620,9 +1613,9 @@ function sendChatMessage() {
     const nick = chatElements.inputNick.value.trim() || "Anonymous";
 
     if (!text) return;
-    if (!mqttClient.isConnected()) {
+
+    if (!mqttClient || !mqttClient.connected) {
         alert("Not connected to chat server!");
-        connectToChat();
         return;
     }
 
@@ -1633,10 +1626,7 @@ function sendChatMessage() {
         timestamp: Date.now()
     };
 
-    const message = new Paho.MQTT.Message(JSON.stringify(payload));
-    message.destinationName = MQTT_TOPIC;
-    mqttClient.send(message);
-
+    mqttClient.publish(MQTT_TOPIC, JSON.stringify(payload));
     chatElements.inputMsg.value = "";
 }
 
@@ -1644,10 +1634,16 @@ function renderMessage(nick, text, isSelf) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isSelf ? 'self' : 'other'}`;
 
-    msgDiv.innerHTML = `
-        <span class="msg-sender">${escapeHtml(nick)}</span>
-        <span class="msg-content">${escapeHtml(text)}</span>
-    `;
+    const senderSpan = document.createElement('span');
+    senderSpan.className = 'msg-sender';
+    senderSpan.textContent = nick;
+
+    const contentSpan = document.createElement('span');
+    contentSpan.className = 'msg-content';
+    contentSpan.textContent = text;
+
+    msgDiv.appendChild(senderSpan);
+    msgDiv.appendChild(contentSpan);
 
     chatElements.messages.appendChild(msgDiv);
     scrollToBottom();
