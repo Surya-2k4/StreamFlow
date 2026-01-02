@@ -14,11 +14,15 @@ Built with **HTML**, **CSS**, and **Vanilla JavaScript**, it demonstrates robust
 - **Player Controls:** Custom controls for audio track and subtitle selection.
 - **Responsive Player:** Adaptive video player that works perfectly on mobile and desktop.
 
+![TV Output](screenshots/tv.png)
+
 ### 🌍 Global Real-Time Chat
 - **Instant Messaging:** Connect with other users globally in real-time.
 - **Powered by MQTT:** Built on top of **MQTT.js** over WebSockets (`wss://broker.emqx.io`).
 - **Resilient Connectivity:** Auto-reconnection logic and robust fallback mechanisms (Local library -> CDN).
 - **Security:** Strict Content Security Policy (CSP) compliant.
+
+![Chat Output](screenshots/chat.png)
 
 ### 🎵 Music & Radio
 - **Music Search:** Browse and play songs directly within the dashboard.
@@ -28,19 +32,27 @@ Built with **HTML**, **CSS**, and **Vanilla JavaScript**, it demonstrates robust
   - Filter by country, genre, (e.g., Bollywood, Pop, Rock, News).
   - Audio visualization support.
 
+![Radio Output](screenshots/radio.png)
+
 ### 📰 Smart News Aggregator
 - **Top Headlines:** Fetches the latest news based on country (USA, India, UK, etc.) and category.
 - **Auto-Refresh:** Keeps you updated with automatic content refreshing.
 - **Clean UI:** Card-based layout with "Read More" integration.
+
+![News Output](screenshots/news.png)
 
 ### ☀️ Weather Forecast
 - **Real-Time Data:** Powered by the **Open-Meteo API**.
 - **Detailed Metrics:** Current temperature, wind speed, humidity, and weather conditions.
 - **7-Day Forecast:** Planning made easy with a week-long outlook.
 
+![Weather Output](screenshots/weather.png)
+
 ### 🧠 Focus Mode (Productivity)
 - **Pomodoro Timer:** Customizable timer for Focus (25m), Short Break (5m), and Long Break (15m).
 - **Ambient Sounds:** Integrated White Noise/Brown Noise generator and Lofi radio for deep work sessions.
+
+![Focus Output](screenshots/focus.png)
 
 ---
 
