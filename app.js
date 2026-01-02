@@ -45,7 +45,11 @@ async function initApp() {
 
     } catch (error) {
         console.error('Error:', error);
-        elements.loadingSpinner.innerHTML = `<p style="color:red">Failed to load channels. ${error.message}</p>`;
+        elements.loadingSpinner.innerHTML = '';
+        const errorP = document.createElement('p');
+        errorP.style.color = 'red';
+        errorP.textContent = `Failed to load channels. ${error.message}`;
+        elements.loadingSpinner.appendChild(errorP);
     }
 }
 
@@ -76,7 +80,10 @@ function parseM3U(content) {
             };
         } else if (line.startsWith('http')) {
             currentChannel.url = line;
+            // Security: In a real environment, you might want to filter out non-HTTPS
+            // but for IPTV compatibility we keep HTTP. Browser Mixed-Content rules will apply.
             if (currentChannel.name) {
+                // Basic sanitization of the name and group happens at render time
                 channels.push(currentChannel);
             }
             currentChannel = {};
@@ -103,17 +110,42 @@ function renderChannels(channels, append = false) {
         card.className = 'channel-card';
         card.onclick = () => playChannel(channel, card);
 
-        const logoHtml = channel.logo ?
-            `<img src="${channel.logo}" alt="${channel.name}" class="channel-logo" loading="lazy" onerror="this.onerror=null;this.replaceWith(createPlaceholder('${channel.name}'))">` :
-            createPlaceholderHtml(channel.name);
+        // Logo Logic
+        let logoNode;
+        if (channel.logo) {
+            const img = document.createElement('img');
+            img.src = channel.logo;
+            img.alt = channel.name;
+            img.className = 'channel-logo';
+            img.loading = 'lazy';
+            img.onerror = () => {
+                const placeholder = createPlaceholder(channel.name);
+                if (img.parentNode) img.replaceWith(placeholder);
+            };
+            logoNode = img;
+        } else {
+            logoNode = createPlaceholder(channel.name);
+        }
 
-        card.innerHTML = `
-            ${logoHtml}
-            <div class="channel-details">
-                <div class="channel-name" title="${channel.name}">${channel.name}</div>
-                <div class="channel-group" title="${channel.group}">${channel.group}</div>
-            </div>
-        `;
+        card.appendChild(logoNode);
+
+        const details = document.createElement('div');
+        details.className = 'channel-details';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'channel-name';
+        nameDiv.title = channel.name;
+        nameDiv.textContent = channel.name;
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'channel-group';
+        groupDiv.title = channel.group;
+        groupDiv.textContent = channel.group;
+
+        details.appendChild(nameDiv);
+        details.appendChild(groupDiv);
+        card.appendChild(details);
+
         fragment.appendChild(card);
     });
 
@@ -559,12 +591,20 @@ musicElements.musicSearchInput.addEventListener('input', (e) => {
 });
 
 async function searchMusic(query) {
-    musicElements.musicGrid.innerHTML = `
-        <div class="loading-spinner" style="grid-column: 1/-1;">
-            <div class="spinner"></div>
-            <p>Searching for "${query}"...</p>
-        </div>
-    `;
+    musicElements.musicGrid.innerHTML = '';
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    spinner.style.gridColumn = '1/-1';
+
+    const spinDiv = document.createElement('div');
+    spinDiv.className = 'spinner';
+
+    const p = document.createElement('p');
+    p.textContent = `Searching for "${query}"...`;
+
+    spinner.appendChild(spinDiv);
+    spinner.appendChild(p);
+    musicElements.musicGrid.appendChild(spinner);
 
     try {
         // Using 'seevn' (Saavn) engine as it's often reliable for this API
@@ -583,7 +623,13 @@ async function searchMusic(query) {
 
     } catch (error) {
         console.error('Music Search Error:', error);
-        musicElements.musicGrid.innerHTML = `<p style="color: #ef4444; text-align: center; width: 100%;">Failed to search music. Please try again.</p>`;
+        musicElements.musicGrid.innerHTML = '';
+        const p = document.createElement('p');
+        p.style.color = '#ef4444'; // red-500
+        p.style.textAlign = 'center';
+        p.style.width = '100%';
+        p.textContent = 'Failed to search music. Please try again.';
+        musicElements.musicGrid.appendChild(p);
     }
 }
 
@@ -593,18 +639,35 @@ function renderMusicResults(songs) {
 
     songs.forEach(song => {
         const card = document.createElement('div');
-        card.className = 'channel-card'; // Reuse existing card style
+        card.className = 'channel-card';
 
         // Get higher resolution image
         const imgUrl = song.artworkUrl100 ? song.artworkUrl100.replace('100x100', '300x300') : 'https://via.placeholder.com/100';
 
-        card.innerHTML = `
-            <img src="${imgUrl}" alt="${song.trackName}" class="channel-logo" style="border-radius: 4px;">
-            <div class="channel-details">
-                <div class="channel-name" title="${song.trackName}">${song.trackName}</div>
-                <div class="channel-group" title="${song.artistName}">${song.artistName}</div>
-            </div>
-        `;
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = song.trackName;
+        img.className = 'channel-logo';
+        img.style.borderRadius = '4px';
+
+        const details = document.createElement('div');
+        details.className = 'channel-details';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'channel-name';
+        nameDiv.title = song.trackName;
+        nameDiv.textContent = song.trackName;
+
+        const artistDiv = document.createElement('div');
+        artistDiv.className = 'channel-group';
+        artistDiv.title = song.artistName;
+        artistDiv.textContent = song.artistName;
+
+        details.appendChild(nameDiv);
+        details.appendChild(artistDiv);
+
+        card.appendChild(img);
+        card.appendChild(details);
 
         card.onclick = () => playMusic(song, card);
         fragment.appendChild(card);
@@ -692,12 +755,35 @@ async function fetchNews() {
 
     } catch (error) {
         console.error('News Fetch Error:', error);
-        newsElements.newsGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 20px;">
-                <p style="color: #ef4444; margin-bottom: 10px;">Failed to load live news.</p>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">${error.message}</p>
-                <button onclick="fetchNews()" class="read-more-btn" style="background: var(--surface-hover); margin-top: 10px; cursor: pointer;">Retry</button>
-            </div>`;
+        console.error('News Fetch Error:', error);
+        newsElements.newsGrid.innerHTML = '';
+        const div = document.createElement('div');
+        div.style.gridColumn = '1/-1';
+        div.style.textAlign = 'center';
+        div.style.padding = '20px';
+
+        const p1 = document.createElement('p');
+        p1.style.color = '#ef4444';
+        p1.style.marginBottom = '10px';
+        p1.textContent = 'Failed to load live news.';
+
+        const p2 = document.createElement('p');
+        p2.style.color = 'var(--text-secondary)';
+        p2.style.fontSize = '0.9rem';
+        p2.textContent = error.message;
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Retry';
+        btn.className = 'read-more-btn';
+        btn.style.background = 'var(--surface-hover)';
+        btn.style.marginTop = '10px';
+        btn.style.cursor = 'pointer';
+        btn.onclick = () => fetchNews();
+
+        div.appendChild(p1);
+        div.appendChild(p2);
+        div.appendChild(btn);
+        newsElements.newsGrid.appendChild(div);
     }
 }
 
@@ -747,21 +833,56 @@ function renderNews(articles) {
             title = title.substring(0, sourceMatch).trim();
         }
 
-        card.innerHTML = `
-            <div class="news-image-container">
-                <img src="${imgUrl}" alt="News" class="news-image" loading="lazy" onerror="this.src='https://picsum.photos/seed/${Math.random()}/600/400'">
-            </div>
-            <div class="news-content">
-                <div class="news-source">
-                    <span>${sourceName}</span>
-                    <span>${dateStr}</span>
-                </div>
-                <div class="news-title" title="${article.title}">${title}</div>
-                <div class="news-footer">
-                    <a href="${article.link}" target="_blank" class="read-more-btn">Read Full Story <i class="fa-solid fa-arrow-right"></i></a>
-                </div>
-            </div>
-        `;
+        // DOM Construction
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'news-image-container';
+
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = 'News';
+        img.className = 'news-image';
+        img.loading = 'lazy';
+        img.onerror = () => { img.src = `https://picsum.photos/seed/${Math.random()}/600/400`; };
+        imgContainer.appendChild(img);
+
+        const content = document.createElement('div');
+        content.className = 'news-content';
+
+        const sourceDiv = document.createElement('div');
+        sourceDiv.className = 'news-source';
+
+        const sourceSpan = document.createElement('span');
+        sourceSpan.textContent = sourceName;
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = dateStr;
+
+        sourceDiv.appendChild(sourceSpan);
+        sourceDiv.appendChild(dateSpan);
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'news-title';
+        titleDiv.title = article.title;
+        titleDiv.textContent = title;
+
+        const footerDiv = document.createElement('div');
+        footerDiv.className = 'news-footer';
+
+        const link = document.createElement('a');
+        link.href = article.link;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer'; // Security fix
+        link.className = 'read-more-btn';
+        link.innerHTML = 'Read Full Story <i class="fa-solid fa-arrow-right"></i>';
+
+        footerDiv.appendChild(link);
+
+        content.appendChild(sourceDiv);
+        content.appendChild(titleDiv);
+        content.appendChild(footerDiv);
+
+        card.appendChild(imgContainer);
+        card.appendChild(content);
+
         fragment.appendChild(card);
     });
 
@@ -972,13 +1093,35 @@ function renderRadioStations(stations) {
         // Use standard placeholder for all stations per user request
         const imgUrl = RADIO_PLACEHOLDER_IMG;
 
-        card.innerHTML = `
-            <img src="${imgUrl}" alt="${station.name}" class="channel-logo" style="border-radius: 50%; background:white; padding: 2px;" onerror="this.src='${RADIO_PLACEHOLDER_IMG}'">
-            <div class="channel-details">
-                <div class="channel-name" title="${station.name}">${station.name}</div>
-                <div class="channel-group" title="${station.tags}">${station.tags.slice(0, 30)}${station.tags.length > 30 ? '...' : ''}</div>
-            </div>
-        `;
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = station.name;
+        img.className = 'channel-logo';
+        img.style.borderRadius = '50%';
+        img.style.backgroundColor = 'white';
+        img.style.padding = '2px';
+        img.onerror = () => { img.src = RADIO_PLACEHOLDER_IMG; };
+
+        const details = document.createElement('div');
+        details.className = 'channel-details';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'channel-name';
+        nameDiv.title = station.name;
+        nameDiv.textContent = station.name;
+
+        const safeTags = station.tags ? (station.tags.slice(0, 30) + (station.tags.length > 30 ? '...' : '')) : '';
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'channel-group';
+        groupDiv.title = station.tags;
+        groupDiv.textContent = safeTags;
+
+        details.appendChild(nameDiv);
+        details.appendChild(groupDiv);
+
+        card.appendChild(img);
+        card.appendChild(details);
 
         card.onclick = () => playRadioStation(station, card);
         fragment.appendChild(card);
@@ -1133,14 +1276,36 @@ async function fetchWeather(lat, lon, cityName) {
                 card.style.borderRadius = '12px';
                 card.style.textAlign = 'center';
 
-                card.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 5px; color: var(--text-secondary);">${dayName}</div>
-                    <div style="font-size: 2rem; margin-bottom: 5px;">${getWeatherIcon(code)}</div>
-                    <div>
-                        <span style="font-weight: bold;">${max}°</span> 
-                        <span style="color: var(--text-secondary); font-size: 0.9em;">${min}°</span>
-                    </div>
-                `;
+                card.innerHTML = ''; // Clear just in case
+
+                const dayDiv = document.createElement('div');
+                dayDiv.style.fontWeight = 'bold';
+                dayDiv.style.marginBottom = '5px';
+                dayDiv.style.color = 'var(--text-secondary)';
+                dayDiv.textContent = dayName;
+
+                const iconDiv = document.createElement('div');
+                iconDiv.style.fontSize = '2rem';
+                iconDiv.style.marginBottom = '5px';
+                iconDiv.textContent = getWeatherIcon(code);
+
+                const tempDiv = document.createElement('div');
+
+                const maxSpan = document.createElement('span');
+                maxSpan.style.fontWeight = 'bold';
+                maxSpan.textContent = `${max}° `;
+
+                const minSpan = document.createElement('span');
+                minSpan.style.color = 'var(--text-secondary)';
+                minSpan.style.fontSize = '0.9em';
+                minSpan.textContent = `${min}°`;
+
+                tempDiv.appendChild(maxSpan);
+                tempDiv.appendChild(minSpan);
+
+                card.appendChild(dayDiv);
+                card.appendChild(iconDiv);
+                card.appendChild(tempDiv);
                 weatherElements.grid.appendChild(card);
             }
         }
