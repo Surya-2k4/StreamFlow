@@ -4,8 +4,6 @@ StreamFlow is a modern, all-in-one personal dashboard application that brings to
 
 Built with **HTML**, **CSS**, and **Vanilla JavaScript**, it demonstrates robust frontend architecture without the overhead of heavy frameworks.
 
-![StreamFlow Dashboard](https://via.placeholder.com/800x400?text=StreamFlow+Dashboard)
-
 ## ✨ Features
 
 ### 📺 Live TV Streaming
